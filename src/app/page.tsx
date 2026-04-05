@@ -3,8 +3,9 @@ import VenueGrid from '@/components/VenueGrid'
 
 export const dynamic = 'force-dynamic'
 
-export default async function HomePage() {
-  const venues = await getVenues()
+export default async function HomePage({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
+  const { date } = await searchParams
+  const venues = await getVenues(date ? { date } : undefined)
 
   return (
     <main className="max-w-7xl mx-auto px-4 py-8">
