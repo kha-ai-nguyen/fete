@@ -1,11 +1,19 @@
 'use client'
 
+import { BadgeCheck } from 'lucide-react'
 import type { Venue } from '@/types'
 
 interface VenueCardProps {
   venue: Venue
   isFlipped: boolean
   onFlip: () => void
+}
+
+function formatPrice(venue: Venue): { label: string; verified: boolean } {
+  if (venue.price_per_head != null) {
+    return { label: `£${Math.round(venue.price_per_head)}/head`, verified: true }
+  }
+  return { label: venue.price_estimate ?? '—', verified: false }
 }
 
 function formatCapacity(venue: Venue): string {
@@ -69,8 +77,11 @@ export default function VenueCard({ venue, isFlipped, onFlip }: VenueCardProps) 
               <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold block">
                 Price
               </span>
-              <span className="text-sm font-bold uppercase text-dark">
-                {venue.price_estimate ?? '—'}
+              <span className="text-sm font-bold uppercase text-dark flex items-center gap-1 justify-end">
+                {formatPrice(venue).label}
+                {formatPrice(venue).verified && (
+                  <BadgeCheck className="w-3.5 h-3.5 text-primary inline-block" />
+                )}
               </span>
             </div>
           </div>

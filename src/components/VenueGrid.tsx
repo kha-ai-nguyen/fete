@@ -5,8 +5,19 @@ import type { EventType, Venue } from '@/types'
 import FilterBar from '@/components/FilterBar'
 import VenueCard from '@/components/VenueCard'
 
-// Maps a price_estimate string (e.g. "£65/head") to a tier label
-function getPriceTier(estimate: string | null): string {
+// Derives a tier label from a numeric price or a legacy price_estimate string
+function getPriceTier(venue: Venue): string {
+  // Prefer the verified rolling-average price when available
+  if (venue.price_per_head != null) {
+    const price = venue.price_per_head
+    if (price < 50) return '£'
+    if (price < 80) return '££'
+    if (price < 120) return '£££'
+    return '££££'
+  }
+
+  // Fall back to the legacy text estimate
+  const estimate = venue.price_estimate
   if (!estimate) return ''
   const match = estimate.match(/£(\d+)/)
   if (!match) return estimate // already a tier string like "££"
@@ -35,7 +46,7 @@ export default function VenueGrid({ venues }: { venues: Venue[] }) {
   const filtered = venues.filter((v) => {
     if (selectedType && !v.event_types.includes(selectedType)) return false
     if (selectedCapacity && getCapacityLabel(v) !== selectedCapacity) return false
-    if (selectedPrice && getPriceTier(v.price_estimate) !== selectedPrice) return false
+    if (selectedPrice && getPriceTier(v) !== selectedPrice) return false
     return true
   })
 

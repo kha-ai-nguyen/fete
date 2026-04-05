@@ -1,7 +1,7 @@
 'use client'
 
 import type { Venue } from '@/types'
-import { Sparkles, Diamond } from 'lucide-react'
+import { Sparkles, Diamond, BadgeCheck } from 'lucide-react'
 
 interface VenueDetailProps {
   venue: Venue
@@ -62,9 +62,17 @@ export default function VenueDetail({ venue }: VenueDetailProps) {
             <div className="border-2 border-dark rounded-lg p-6 shadow-[8px_8px_0px_0px_rgba(26,26,26,1)]">
               <div className="flex items-baseline gap-1 mb-6">
                 <span className="font-display font-extrabold text-2xl text-dark">
-                  {venue.price_estimate ?? '—'}
+                  {venue.price_per_head != null
+                    ? `£${Math.round(venue.price_per_head)}`
+                    : (venue.price_estimate ?? '—')}
                 </span>
                 <span className="text-text-muted text-sm font-medium">/ head</span>
+                {venue.price_per_head != null && (
+                  <span className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-widest text-dark ml-2">
+                    <BadgeCheck className="w-4 h-4 text-primary" />
+                    Verified
+                  </span>
+                )}
               </div>
 
               {/* Date / Guest inputs */}
