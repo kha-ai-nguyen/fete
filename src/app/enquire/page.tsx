@@ -31,6 +31,7 @@ function EnquireForm() {
 
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess] = useState(false)
+  const [conversationId, setConversationId] = useState<string | null>(null)
   const [error, setError] = useState('')
 
   // Today's date as YYYY-MM-DD for the min attribute
@@ -77,6 +78,7 @@ function EnquireForm() {
       if (!res.ok) {
         setError(data.error ?? 'Something went wrong. Please try again.')
       } else {
+        setConversationId(data.conversationId ?? null)
         setSuccess(true)
       }
     } catch {
@@ -102,14 +104,24 @@ function EnquireForm() {
           <span className="text-dark font-semibold">{venueName}</span>.
           They&apos;ll be in touch directly.
         </p>
-        {slug && (
-          <Link
-            href={`/venues/${slug}`}
-            className="inline-block px-6 py-3 bg-primary border-2 border-dark font-bold uppercase text-[10px] tracking-widest text-dark shadow-[2px_2px_0_#1A1A1A] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
-          >
-            View venue
-          </Link>
-        )}
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
+          {conversationId && (
+            <Link
+              href={`/conversations/${conversationId}`}
+              className="inline-block px-6 py-3 bg-primary border-2 border-dark font-bold uppercase text-[10px] tracking-widest text-dark shadow-[2px_2px_0_#1A1A1A] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              View conversation →
+            </Link>
+          )}
+          {slug && (
+            <Link
+              href={`/venues/${slug}`}
+              className="inline-block px-6 py-3 bg-white border-2 border-dark font-bold uppercase text-[10px] tracking-widest text-dark shadow-[2px_2px_0_#1A1A1A] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+            >
+              View venue
+            </Link>
+          )}
+        </div>
       </div>
     )
   }

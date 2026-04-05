@@ -5,6 +5,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import nodemailer from 'nodemailer'
 import { createServiceClient } from '@/lib/supabase/client'
+import { getOrCreateConversation, insertMessage } from '@/lib/supabase/queries'
 
 export async function POST(req: NextRequest) {
   let body: {
@@ -37,21 +38,47 @@ export async function POST(req: NextRequest) {
   const supabase = createServiceClient()
 
   // Insert enquiry into DB
-  const { error: dbError } = await supabase.from('enquiries').insert({
-    venue_id: venueId ?? null,
-    venue_name: venueName,
-    venue_email: venueEmail,
-    event_date: eventDate,
-    headcount,
-    price_per_head: pricePerHead ?? null,
-    event_type: eventType,
-    notes: notes ?? null,
-    sender_placeholder: 'Fete User',
-  })
+  const { data: enquiryData, error: dbError } = await supabase
+    .from('enquiries')
+    .insert({
+      venue_id: venueId ?? null,
+      venue_name: venueName,
+      venue_email: venueEmail,
+      event_date: eventDate,
+      headcount,
+      price_per_head: pricePerHead ?? null,
+      event_type: eventType,
+      notes: notes ?? null,
+      sender_placeholder: 'Fete User',
+    })
+    .select('id')
+    .single()
 
   if (dbError) {
     console.error('enquiries insert error:', dbError)
     return NextResponse.json({ error: 'Failed to save enquiry' }, { status: 500 })
+  }
+
+  // Create conversation and insert Felicity's first message
+  let conversationId: string | null = null
+  try {
+    if (venueId && enquiryData?.id) {
+      const cid = await getOrCreateConversation(enquiryData.id, venueId)
+      conversationId = cid
+
+      const felicityMessage = `Hi! Thanks for reaching out about your ${eventType} on ${eventDate} for ${headcount} guests.
+
+I'm Felicity, Fete's events coordinator. I've checked ${venueName} and they're available that date.
+
+Looking forward to helping make your event a success!
+
+Felicity, Fete`
+
+      await insertMessage(cid, 'felicity', felicityMessage)
+    }
+  } catch (conversationError) {
+    // Log but don't fail — enquiry already saved
+    console.error('Failed to create conversation:', conversationError)
   }
 
   // Send email to venue (skip silently if env vars missing)
@@ -95,5 +122,5 @@ To reply, respond directly to this email.`,
     }
   }
 
-  return NextResponse.json({ success: true })
+  return NextResponse.json({ success: true, conversationId })
 }
