@@ -2,33 +2,83 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { useState, useEffect } from 'react'
 
-const modules = [
-  { label: 'Venues', href: '/' },
-  { label: 'Enquire', href: '/enquire' },
-  { label: 'Dashboard', href: '/dashboard' },
-]
+type Persona = 'booker' | 'venue'
+
+const NAV: Record<Persona, { label: string; href: string }[]> = {
+  booker: [
+    { label: 'Directory', href: '/' },
+    { label: 'Conversations', href: '/conversations' },
+  ],
+  venue: [
+    { label: 'Enquiries', href: '/dashboard' },
+    { label: 'Pipeline', href: '/dashboard' },
+    { label: 'Conversations', href: '/conversations' },
+  ],
+}
 
 export default function Header() {
   const pathname = usePathname()
+  const [persona, setPersona] = useState<Persona>('booker')
+
+  useEffect(() => {
+    const saved = localStorage.getItem('fete-persona') as Persona | null
+    if (saved === 'booker' || saved === 'venue') setPersona(saved)
+  }, [])
+
+  function switchPersona(p: Persona) {
+    setPersona(p)
+    localStorage.setItem('fete-persona', p)
+  }
+
+  const navItems = NAV[persona]
 
   return (
-    <header className="bg-dark text-white px-4 md:px-8 py-4 flex items-center justify-between">
-      <Link
-        href="/"
-        className="font-display font-extrabold text-xl uppercase tracking-tight text-primary"
-      >
-        Fete
-      </Link>
+    <header className="bg-dark text-white px-4 md:px-8 py-3 flex items-center justify-between gap-4">
+      {/* Persona toggle */}
+      <div className="flex items-center gap-3 shrink-0">
+        <Link
+          href="/"
+          className="font-display font-extrabold text-lg uppercase tracking-tight text-primary"
+        >
+          Fete
+        </Link>
 
+        <div className="relative flex items-center bg-white/10 rounded-full p-0.5">
+          {/* Sliding pill */}
+          <div
+            className="absolute top-0.5 bottom-0.5 w-[calc(50%-2px)] rounded-full bg-primary transition-transform duration-200"
+            style={{ transform: persona === 'venue' ? 'translateX(calc(100% + 4px))' : 'translateX(2px)' }}
+          />
+          <button
+            onClick={() => switchPersona('booker')}
+            className={`relative z-10 px-3 py-1 text-xs font-bold uppercase tracking-widest rounded-full transition-colors duration-200 ${
+              persona === 'booker' ? 'text-dark' : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Booker
+          </button>
+          <button
+            onClick={() => switchPersona('venue')}
+            className={`relative z-10 px-3 py-1 text-xs font-bold uppercase tracking-widest rounded-full transition-colors duration-200 ${
+              persona === 'venue' ? 'text-dark' : 'text-white/60 hover:text-white'
+            }`}
+          >
+            Venue
+          </button>
+        </div>
+      </div>
+
+      {/* Persona nav */}
       <nav className="flex items-center gap-1">
-        {modules.map(({ label, href }) => {
+        {navItems.map(({ label, href }) => {
           const isActive =
             href === '/' ? pathname === '/' : pathname.startsWith(href)
 
           return (
             <Link
-              key={href}
+              key={label}
               href={href}
               className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
                 isActive

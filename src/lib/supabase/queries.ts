@@ -84,76 +84,136 @@ export async function getEnquiriesByVenue(venueId: string): Promise<Enquiry[]> {
   return (data ?? []) as Enquiry[]
 }
 
-// ─── Conversation helpers (referenced by enquire API + thread view) ──────────
-
-export async function getOrCreateConversation(
-  enquiryId: string,
-  venueId: string,
-): Promise<string> {
+export async function getOrCreateConversation(enquiryId: string, venueId: string) {
   const supabase = createServiceClient()
-
-  // Check for an existing conversation for this enquiry
+  
+  // Check if conversation already exists
   const { data: existing } = await supabase
     .from('conversations')
     .select('id')
     .eq('enquiry_id', enquiryId)
     .single()
 
-  if (existing) return existing.id
+  if (existing) {
+    return existing.id
+  }
 
-  // Create a new conversation
+  // Create new conversation
   const { data, error } = await supabase
     .from('conversations')
-    .insert({ enquiry_id: enquiryId, venue_id: venueId })
+    .insert({
+      enquiry_id: enquiryId,
+      venue_id: venueId,
+      booker_id: 'Fete User',
+    })
     .select('id')
     .single()
 
-  if (error) throw new Error(`getOrCreateConversation: ${error.message}`)
+  if (error) throw error
   return data.id
 }
 
 export async function insertMessage(
   conversationId: string,
-  fromType: string,
-  messageText: string,
-): Promise<void> {
+  fromType: 'booker' | 'venue' | 'felicity',
+  messageText: string
+) {
   const supabase = createServiceClient()
-  const { error } = await supabase
+  
+  const { data, error } = await supabase
     .from('messages')
     .insert({
       conversation_id: conversationId,
       from_type: fromType,
+      from_agent: fromType === 'felicity',
       message_text: messageText,
     })
-
-  if (error) throw new Error(`insertMessage: ${error.message}`)
-}
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getConversation(id: string): Promise<any> {
-  const supabase = createServiceClient()
-  const { data, error } = await supabase
-    .from('conversations')
-    .select('*, enquiries(*), venues(name, slug)')
-    .eq('id', id)
+    .select('id')
     .single()
 
-  if (error) throw new Error(`getConversation: ${error.message}`)
-  return data
+  if (error) throw error
+  return data.id
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export async function getConversationMessages(conversationId: string): Promise<any[]> {
+export async function getConversationMessages(conversationId: string) {
   const supabase = createServiceClient()
+  
   const { data, error } = await supabase
     .from('messages')
-    .select('*')
+    .select('id, from_type, from_agent, message_text, sent_at')
     .eq('conversation_id', conversationId)
     .order('sent_at', { ascending: true })
 
-  if (error) {
-    console.error('getConversationMessages error:', error.message)
-    return []
-  }
-  return data ?? []
+  if (error) throw error
+  return data
+}
+
+export async function getConversation(conversationId: string) {
+  const supabase = createServiceClient()
+  
+  const { data, error } = await supabase
+    .from('conversations')
+    .select(`
+      id,
+      status,
+      created_at,
+      enquiry_id,
+      venue_id,
+      enquiries (
+        id,
+        event_date,
+        headcount,
+        price_per_head,
+        event_type,
+        notes
+      ),
+      venues (
+        id,
+        name,
+        slug
+      )
+    `)
+    .eq('id', conversationId)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getVenueConversations(venueId: string) {
+  const supabase = createServiceClient()
+  
+  const { data, error } = await supabase
+    .from('conversations')
+    .select(`
+      id,
+      status,
+      created_at,
+      enquiry_id,
+      enquiries (
+        id,
+        event_date,
+        headcount,
+        event_type
+      )
+    `)
+    .eq('venue_id', venueId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function updateConversationStatus(
+  conversationId: string,
+  status: 'open' | 'closed' | 'handed_off'
+) {
+  const supabase = createServiceClient()
+  
+  const { error } = await supabase
+    .from('conversations')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', conversationId)
+
+  if (error) throw error
 }
