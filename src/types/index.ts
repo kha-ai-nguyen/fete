@@ -183,3 +183,17 @@ export const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
     'Any other questions for the venue?',
   ],
 }
+
+export type ProposalStatus = 'submitted' | 'accepted' | 'declined'
+
+// Matches the Supabase proposals table schema
+export interface Proposal {
+  id: string
+  venue_id: string
+  event_id: string
+  space_id: string | null
+  price_per_head: number | null
+  status: ProposalStatus
+  created_at: string
+  updated_at: string
+}

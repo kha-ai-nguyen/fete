@@ -1,5 +1,5 @@
 import { createServiceClient } from './client'
-import type { Space, BookerEvent, Conversation, Message } from '@/types'
+import type { Space, BookerEvent, Conversation, Message, Proposal, ProposalStatus } from '@/types'
 
 // ─── Spaces ──────────────────────────────────────────────────────────────────
 
@@ -310,4 +310,72 @@ export async function toggleAvailabilityBlock(
       .insert({ space_id: spaceId, blocked_date: date })
     return { blocked: true }
   }
+}
+
+// ── Proposals ──────────────────────────────────────────────
+
+export async function getProposalsByVenue(venueId: string): Promise<Proposal[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select('*')
+    .eq('venue_id', venueId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getProposalsByVenue error:', error.message)
+    return []
+  }
+  return (data ?? []) as Proposal[]
+}
+
+export async function getProposalsByEvent(eventId: string): Promise<Proposal[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select('*')
+    .eq('event_id', eventId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getProposalsByEvent error:', error.message)
+    return []
+  }
+  return (data ?? []) as Proposal[]
+}
+
+export async function createProposal(
+  proposal: Omit<Proposal, 'id' | 'created_at' | 'updated_at' | 'status'>
+): Promise<Proposal | null> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('proposals')
+    .insert(proposal)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('createProposal error:', error.message)
+    return null
+  }
+  return data as Proposal
+}
+
+export async function updateProposalStatus(
+  proposalId: string,
+  status: ProposalStatus
+): Promise<Proposal | null> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('proposals')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', proposalId)
+    .select()
+    .single()
+
+  if (error) {
+    console.error('updateProposalStatus error:', error.message)
+    return null
+  }
+  return data as Proposal
 }
