@@ -89,7 +89,7 @@ export default function TimeSavedMeter({ data }: { data: TimeSavedData }) {
       <div className="grid grid-cols-2 gap-3">
         <div className="bg-card border-2 border-dark rounded-md p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 flex items-center justify-center bg-primary border border-dark rounded">
+            <div className="w-7 h-7 flex items-center justify-center bg-primary border-2 border-dark rounded">
               <Zap className="w-3.5 h-3.5 text-dark" />
             </div>
             <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
@@ -106,7 +106,7 @@ export default function TimeSavedMeter({ data }: { data: TimeSavedData }) {
 
         <div className="bg-card border-2 border-dark rounded-md p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 flex items-center justify-center bg-primary border border-dark rounded">
+            <div className="w-7 h-7 flex items-center justify-center bg-primary border-2 border-dark rounded">
               <Clock className="w-3.5 h-3.5 text-dark" />
             </div>
             <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
@@ -123,7 +123,7 @@ export default function TimeSavedMeter({ data }: { data: TimeSavedData }) {
 
         <div className="bg-card border-2 border-dark rounded-md p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 flex items-center justify-center bg-secondary border border-dark rounded">
+            <div className="w-7 h-7 flex items-center justify-center bg-secondary border-2 border-dark rounded">
               <MessageSquare className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
@@ -140,7 +140,7 @@ export default function TimeSavedMeter({ data }: { data: TimeSavedData }) {
 
         <div className="bg-card border-2 border-dark rounded-md p-4">
           <div className="flex items-center gap-2 mb-2">
-            <div className="w-7 h-7 flex items-center justify-center bg-secondary border border-dark rounded">
+            <div className="w-7 h-7 flex items-center justify-center bg-secondary border-2 border-dark rounded">
               <Send className="w-3.5 h-3.5 text-white" />
             </div>
             <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold">
