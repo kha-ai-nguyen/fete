@@ -17,7 +17,7 @@ begin
       select price_per_head
       from proposals
       where venue_id = NEW.venue_id
-      order by created_at desc
+      order by created_at desc, id desc
       limit 10
     ) p
   )

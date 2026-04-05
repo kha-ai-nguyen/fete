@@ -77,12 +77,17 @@ export default function VenueCard({ venue, isFlipped, onFlip }: VenueCardProps) 
               <span className="text-[10px] text-text-muted uppercase tracking-widest font-bold block">
                 Price
               </span>
-              <span className="text-sm font-bold uppercase text-dark flex items-center gap-1 justify-end">
-                {formatPrice(venue).label}
-                {formatPrice(venue).verified && (
-                  <BadgeCheck className="w-3.5 h-3.5 text-primary inline-block" />
-                )}
-              </span>
+              {(() => {
+                const price = formatPrice(venue)
+                return (
+                  <span className="text-sm font-bold uppercase text-dark flex items-center gap-1 justify-end">
+                    {price.label}
+                    {price.verified && (
+                      <BadgeCheck className="w-3.5 h-3.5 text-primary inline-block" />
+                    )}
+                  </span>
+                )
+              })()}
             </div>
           </div>
           <p className="text-sm text-text-muted font-medium leading-relaxed flex-1">

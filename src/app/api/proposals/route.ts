@@ -25,6 +25,13 @@ export async function POST(request: Request) {
     )
   }
 
+  if (price_per_head > 10000) {
+    return NextResponse.json(
+      { error: 'price_per_head must not exceed 10 000' },
+      { status: 400 }
+    )
+  }
+
   const supabase = getServiceClient()
 
   const { data, error } = await supabase
