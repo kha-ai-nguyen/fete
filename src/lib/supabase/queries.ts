@@ -68,3 +68,137 @@ export async function getEnquiriesByVenue(venueId: string): Promise<Enquiry[]> {
   }
   return (data ?? []) as Enquiry[]
 }
+
+export async function getOrCreateConversation(enquiryId: string, venueId: string) {
+  const supabase = createServiceClient()
+  
+  // Check if conversation already exists
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('enquiry_id', enquiryId)
+    .single()
+
+  if (existing) {
+    return existing.id
+  }
+
+  // Create new conversation
+  const { data, error } = await supabase
+    .from('conversations')
+    .insert({
+      enquiry_id: enquiryId,
+      venue_id: venueId,
+      booker_id: 'Fete User',
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+  return data.id
+}
+
+export async function insertMessage(
+  conversationId: string,
+  fromType: 'booker' | 'venue' | 'felicity',
+  messageText: string
+) {
+  const supabase = createServiceClient()
+  
+  const { data, error } = await supabase
+    .from('messages')
+    .insert({
+      conversation_id: conversationId,
+      from_type: fromType,
+      from_agent: fromType === 'felicity',
+      message_text: messageText,
+    })
+    .select('id')
+    .single()
+
+  if (error) throw error
+  return data.id
+}
+
+export async function getConversationMessages(conversationId: string) {
+  const supabase = createServiceClient()
+  
+  const { data, error } = await supabase
+    .from('messages')
+    .select('id, from_type, from_agent, message_text, sent_at')
+    .eq('conversation_id', conversationId)
+    .order('sent_at', { ascending: true })
+
+  if (error) throw error
+  return data
+}
+
+export async function getConversation(conversationId: string) {
+  const supabase = createServiceClient()
+  
+  const { data, error } = await supabase
+    .from('conversations')
+    .select(`
+      id,
+      status,
+      created_at,
+      enquiry_id,
+      venue_id,
+      enquiries (
+        id,
+        event_date,
+        headcount,
+        price_per_head,
+        event_type,
+        notes
+      ),
+      venues (
+        id,
+        name,
+        slug
+      )
+    `)
+    .eq('id', conversationId)
+    .single()
+
+  if (error) throw error
+  return data
+}
+
+export async function getVenueConversations(venueId: string) {
+  const supabase = createServiceClient()
+  
+  const { data, error } = await supabase
+    .from('conversations')
+    .select(`
+      id,
+      status,
+      created_at,
+      enquiry_id,
+      enquiries (
+        id,
+        event_date,
+        headcount,
+        event_type
+      )
+    `)
+    .eq('venue_id', venueId)
+    .order('created_at', { ascending: false })
+
+  if (error) throw error
+  return data
+}
+
+export async function updateConversationStatus(
+  conversationId: string,
+  status: 'open' | 'closed' | 'handed_off'
+) {
+  const supabase = createServiceClient()
+  
+  const { error } = await supabase
+    .from('conversations')
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq('id', conversationId)
+
+  if (error) throw error
+}
