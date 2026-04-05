@@ -1,6 +1,7 @@
 'use client'
 
 import { BadgeCheck } from 'lucide-react'
+import Link from 'next/link'
 import type { Venue } from '@/types'
 
 interface VenueCardProps {
@@ -93,9 +94,19 @@ export default function VenueCard({ venue, isFlipped, onFlip }: VenueCardProps) 
           <p className="text-sm text-text-muted font-medium leading-relaxed flex-1">
             {venue.description}
           </p>
-          <button className="w-full bg-primary border-2 border-dark text-dark font-bold uppercase tracking-widest py-3.5 rounded-md hover:bg-secondary hover:text-white transition-colors">
-            View Venue →
-          </button>
+          {venue.slug ? (
+            <Link
+              href={`/venues/${venue.slug}`}
+              onClick={(e) => e.stopPropagation()}
+              className="block w-full bg-primary border-2 border-dark text-dark font-bold uppercase tracking-widest py-3.5 rounded-md hover:bg-secondary hover:text-white transition-colors text-center"
+            >
+              View Venue →
+            </Link>
+          ) : (
+            <button className="w-full bg-primary border-2 border-dark text-dark font-bold uppercase tracking-widest py-3.5 rounded-md opacity-50 cursor-not-allowed">
+              View Venue →
+            </button>
+          )}
         </div>
       </div>
     </div>
