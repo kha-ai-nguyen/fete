@@ -1,5 +1,6 @@
--- Phase 2: Calendar sync — availability_blocks + venue calendar columns
+-- Phase 2: Calendar sync — add iCal columns to availability_blocks + venue calendar columns
 -- Run after create-venues-table.sql
+-- Safe to re-run: all statements use IF NOT EXISTS / IF EXISTS guards.
 
 -- Add calendar connection columns to venues
 alter table venues
@@ -7,21 +8,18 @@ alter table venues
   add column if not exists ical_url text,
   add column if not exists last_synced_at timestamptz;
 
--- Availability blocks populated by iCal / Google Calendar sync
-create table if not exists availability_blocks (
-  id uuid primary key default gen_random_uuid(),
-  venue_id uuid not null references venues(id) on delete cascade,
-  title text,
-  starts_at timestamptz not null,
-  ends_at timestamptz not null,
-  all_day boolean not null default false,
-  source text not null check (source in ('google', 'ical')),
-  uid text,
-  synced_at timestamptz not null default now(),
-  created_at timestamptz not null default now()
-);
+-- If availability_blocks already exists (from the simple blocked_date schema),
+-- add the iCal sync columns. These are nullable so legacy rows stay valid.
+alter table availability_blocks
+  add column if not exists title text,
+  add column if not exists starts_at timestamptz,
+  add column if not exists ends_at timestamptz,
+  add column if not exists all_day boolean default false,
+  add column if not exists source text check (source in ('google', 'ical')),
+  add column if not exists uid text,
+  add column if not exists synced_at timestamptz default now();
 
--- Fast lookups by venue + date range
+-- Fast lookups by venue + date range (iCal sync queries)
 create index if not exists idx_availability_blocks_venue_date
   on availability_blocks (venue_id, starts_at, ends_at);
 
