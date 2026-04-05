@@ -83,3 +83,77 @@ export async function getEnquiriesByVenue(venueId: string): Promise<Enquiry[]> {
   }
   return (data ?? []) as Enquiry[]
 }
+
+// ─── Conversation helpers (referenced by enquire API + thread view) ──────────
+
+export async function getOrCreateConversation(
+  enquiryId: string,
+  venueId: string,
+): Promise<string> {
+  const supabase = createServiceClient()
+
+  // Check for an existing conversation for this enquiry
+  const { data: existing } = await supabase
+    .from('conversations')
+    .select('id')
+    .eq('enquiry_id', enquiryId)
+    .single()
+
+  if (existing) return existing.id
+
+  // Create a new conversation
+  const { data, error } = await supabase
+    .from('conversations')
+    .insert({ enquiry_id: enquiryId, venue_id: venueId })
+    .select('id')
+    .single()
+
+  if (error) throw new Error(`getOrCreateConversation: ${error.message}`)
+  return data.id
+}
+
+export async function insertMessage(
+  conversationId: string,
+  fromType: string,
+  messageText: string,
+): Promise<void> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('messages')
+    .insert({
+      conversation_id: conversationId,
+      from_type: fromType,
+      message_text: messageText,
+    })
+
+  if (error) throw new Error(`insertMessage: ${error.message}`)
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getConversation(id: string): Promise<any> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('conversations')
+    .select('*, enquiries(*), venues(name, slug)')
+    .eq('id', id)
+    .single()
+
+  if (error) throw new Error(`getConversation: ${error.message}`)
+  return data
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export async function getConversationMessages(conversationId: string): Promise<any[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('messages')
+    .select('*')
+    .eq('conversation_id', conversationId)
+    .order('sent_at', { ascending: true })
+
+  if (error) {
+    console.error('getConversationMessages error:', error.message)
+    return []
+  }
+  return data ?? []
+}
