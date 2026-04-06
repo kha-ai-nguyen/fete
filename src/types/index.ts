@@ -211,3 +211,54 @@ export const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
     'Any other questions for the venue?',
   ],
 }
+
+// Phase 2 — Booker-side enquiry view with outreach status tracking
+export type BookerEnquiryStatus = 'sent' | 'viewed' | 'replied' | 'declined'
+
+export interface BookerEnquiry {
+  id: string
+  venue_id: string
+  venue_name: string
+  venue_neighbourhood: string
+  user_email: string
+  event_type: string
+  event_date: string
+  headcount: number
+  budget_per_head: string | null
+  message: string | null
+  status: BookerEnquiryStatus
+  created_at: string
+}
+
+// Phase 2 — Proposal from a venue in response to an enquiry
+export type ProposalStatus = 'submitted' | 'accepted' | 'declined'
+
+export interface Proposal {
+  id: string
+  enquiry_id: string
+  venue_id: string
+  venue_name: string
+  venue_neighbourhood: string
+  venue_photo: string
+  price_per_head: number
+  event_date: string
+  package_name: string | null
+  notes: string | null
+  status: ProposalStatus
+  created_at: string
+}
+
+// Phase 2 — Shortlisted venue by the booker
+export interface ShortlistedVenue {
+  id: string
+  venue_id: string
+  venue_name: string
+  venue_neighbourhood: string
+  venue_photo: string
+  capacity_max: number | null
+  price_estimate: string | null
+  event_types: string[]
+  enquiry_id: string | null
+  proposal_count: number
+  added_at: string
+}

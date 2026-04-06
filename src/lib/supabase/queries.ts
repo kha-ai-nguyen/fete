@@ -1,5 +1,6 @@
 import { createServiceClient } from './client'
 import type { Space, BookerEvent, Conversation, Message } from '@/types'
+import type { BookerEnquiry, Proposal } from '@/types'
 
 // ─── Spaces ──────────────────────────────────────────────────────────────────
 
@@ -331,4 +332,37 @@ export async function toggleAvailabilityBlock(
       .insert({ space_id: spaceId, blocked_date: date })
     return { blocked: true }
   }
+}
+
+// Phase 2 — Booker dashboard queries
+
+export async function getBookerEnquiriesByEmail(email: string): Promise<BookerEnquiry[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('enquiries')
+    .select('*')
+    .eq('user_email', email)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getBookerEnquiriesByEmail error:', error.message)
+    return []
+  }
+  return (data ?? []) as BookerEnquiry[]
+}
+
+export async function getProposalsByEnquiryIds(enquiryIds: string[]): Promise<Proposal[]> {
+  if (enquiryIds.length === 0) return []
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select('*')
+    .in('enquiry_id', enquiryIds)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getProposalsByEnquiryIds error:', error.message)
+    return []
+  }
+  return (data ?? []) as Proposal[]
 }
