@@ -132,6 +132,34 @@ export interface ClaimRequest {
   approved: boolean
 }
 
+export interface ExtractedVenueData {
+  venue_name?: string | null
+  venue_description?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  spaces: ExtractedSpace[]
+}
+
+export interface ExtractedSpace {
+  name: string
+  capacity: number | null
+  base_price: number | null
+  min_spend: number | null
+  payment_deposit_pct: number | null
+  payment_pay_ahead: boolean
+  photos: string[]
+  description?: string | null
+}
+
+export interface ProposalSections {
+  coverPage: boolean
+  spaceDetails: boolean
+  pricingBreakdown: boolean
+  paymentTerms: boolean
+  contact: boolean
+  menu: boolean
+}
+
 // Follow-up questions by event type
 export const FOLLOW_UP_QUESTIONS: Record<string, string[]> = {
   Wedding: [

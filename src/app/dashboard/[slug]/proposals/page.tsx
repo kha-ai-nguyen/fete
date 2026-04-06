@@ -75,10 +75,9 @@ export default async function ProposalsPage({
             } | null
 
             return (
-              <Link
+              <div
                 key={conv.id}
-                href={`/conversations/${conv.id}`}
-                className="block bg-white border-2 border-dark rounded-2xl p-5 hover:border-secondary hover:shadow-[4px_4px_0px_0px_rgba(26,26,26,1)] transition-all"
+                className="bg-white border-2 border-dark rounded-2xl p-5"
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
@@ -118,13 +117,22 @@ export default async function ProposalsPage({
                     )}
                   </div>
 
-                  <div className="shrink-0">
-                    <span className="text-xs font-bold uppercase tracking-widest text-text-muted">
+                  <div className="shrink-0 flex flex-col gap-2 items-end">
+                    <Link
+                      href={`/conversations/${conv.id}`}
+                      className="text-xs font-bold uppercase tracking-widest text-text-muted hover:text-dark transition-colors"
+                    >
                       View thread →
-                    </span>
+                    </Link>
+                    <Link
+                      href={`/dashboard/${slug}/proposals/builder?conversation_id=${conv.id}`}
+                      className="text-xs font-bold uppercase tracking-widest bg-primary border-2 border-dark rounded-lg px-3 py-1.5 text-dark hover:shadow-[2px_2px_0px_0px_rgba(26,26,26,1)] transition-all"
+                    >
+                      Generate proposal
+                    </Link>
                   </div>
                 </div>
-              </Link>
+              </div>
             )
           })}
         </div>
