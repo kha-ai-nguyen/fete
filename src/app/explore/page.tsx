@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { getSpacesWithFilters, getBookerEvent } from '@/lib/supabase/queries'
 import type { Space } from '@/types'
 import RequestProposalButton from './RequestProposalButton'
+import BookerNav from '@/components/BookerNav'
 
 export const dynamic = 'force-dynamic'
 
@@ -146,8 +147,10 @@ export default async function ExplorePage({
   const dateTo = event?.date_to ?? undefined
 
   return (
-    <main className="min-h-screen bg-base px-4 py-10">
-      <div className="max-w-6xl mx-auto">
+    <>
+      <BookerNav />
+      <main className="md:ml-[250px] px-6 py-10">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
           <div>
@@ -206,6 +209,7 @@ export default async function ExplorePage({
           />
         </Suspense>
       </div>
-    </main>
+      </main>
+    </>
   )
 }

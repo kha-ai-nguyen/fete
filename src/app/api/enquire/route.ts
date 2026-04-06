@@ -37,9 +37,9 @@ export async function POST(req: NextRequest) {
 
   const supabase = createServiceClient()
 
-  // Insert enquiry into DB
-  const { data: enquiryData, error: dbError } = await supabase
-    .from('enquiries')
+  // Insert event into DB
+  const { data: eventData, error: dbError } = await supabase
+    .from('events')
     .insert({
       venue_id: venueId ?? null,
       venue_name: venueName,
@@ -49,22 +49,20 @@ export async function POST(req: NextRequest) {
       price_per_head: pricePerHead ?? null,
       event_type: eventType,
       notes: notes ?? null,
-      sender_placeholder: 'Fete User',
+      booker_name: 'Fete User',
     })
     .select('id')
     .single()
 
   if (dbError) {
-    console.error('enquiries insert error:', dbError)
-    return NextResponse.json({ error: 'Failed to save enquiry' }, { status: 500 })
+    console.error('events insert error:', dbError)
+    return NextResponse.json({ error: 'Failed to save event' }, { status: 500 })
   }
 
   // Create conversation and insert Felicity's first message
-  let conversationId: string | null = null
   try {
-    if (venueId && enquiryData?.id) {
-      const cid = await getOrCreateConversation(enquiryData.id, venueId)
-      conversationId = cid
+    if (venueId && eventData?.id) {
+      const conversationId = await getOrCreateConversation(eventData.id, venueId)
 
       const felicityMessage = `Hi! Thanks for reaching out about your ${eventType} on ${eventDate} for ${headcount} guests.
 
@@ -74,10 +72,10 @@ Looking forward to helping make your event a success!
 
 Felicity, Fete`
 
-      await insertMessage(cid, 'felicity', felicityMessage)
+      await insertMessage(conversationId, 'felicity', felicityMessage)
     }
   } catch (conversationError) {
-    // Log but don't fail — enquiry already saved
+    // Log but don't fail — event already saved
     console.error('Failed to create conversation:', conversationError)
   }
 
@@ -104,8 +102,8 @@ Felicity, Fete`
         from: gmailUser,
         to: venueEmail,
         replyTo: 'noreply@fete.london',
-        subject: `New enquiry for ${venueName} — ${eventType} for ${headcount} guests`,
-        text: `You have a new private event enquiry via Fete.
+        subject: `New event inquiry for ${venueName} — ${eventType} for ${headcount} guests`,
+        text: `You have a new private event inquiry via Fete.
 
 Event type: ${eventType}
 Date: ${eventDate}
@@ -113,14 +111,14 @@ Guests: ${headcount}
 ${budgetLine}
 ${notesLine}
 ---
-This enquiry was sent via Fete (https://fete.london).
+This inquiry was sent via Fete (https://fete.london).
 To reply, respond directly to this email.`,
       })
     } catch (emailError) {
       // Log but don't fail — DB insert already succeeded
-      console.error('Failed to send enquiry email:', emailError)
+      console.error('Failed to send inquiry email:', emailError)
     }
   }
 
-  return NextResponse.json({ success: true, conversationId })
+  return NextResponse.json({ success: true })
 }

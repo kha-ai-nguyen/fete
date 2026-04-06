@@ -15,7 +15,27 @@ CREATE TABLE IF NOT EXISTS spaces (
   created_at timestamptz DEFAULT now()
 );
 
--- 2. Add new columns to events table
+-- 2. Create events table if it doesn't exist, or add new columns if it does
+CREATE TABLE IF NOT EXISTS events (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id uuid REFERENCES venues(id) ON DELETE SET NULL,
+  venue_name text NOT NULL DEFAULT '',
+  venue_email text NOT NULL DEFAULT '',
+  event_date date,
+  headcount int NOT NULL DEFAULT 0,
+  price_per_head int,
+  event_type text NOT NULL DEFAULT '',
+  notes text,
+  booker_name text NOT NULL DEFAULT 'Guest',
+  budget_per_head_max int,
+  date_from date,
+  date_to date,
+  postcode text,
+  radius_km int DEFAULT 5,
+  created_at timestamptz DEFAULT now()
+);
+
+-- If the table already existed, add any missing columns
 ALTER TABLE events
   ADD COLUMN IF NOT EXISTS budget_per_head_max int,
   ADD COLUMN IF NOT EXISTS date_from date,
@@ -23,8 +43,18 @@ ALTER TABLE events
   ADD COLUMN IF NOT EXISTS postcode text,
   ADD COLUMN IF NOT EXISTS radius_km int DEFAULT 5;
 
--- 3. Update availability_blocks: add space_id (keep venue_id for backward compat)
-ALTER TABLE availability_blocks
+-- 3. Create availability if it doesn't exist, or add space_id if it does
+CREATE TABLE IF NOT EXISTS availability (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  venue_id uuid REFERENCES venues(id) ON DELETE CASCADE,
+  space_id uuid REFERENCES spaces(id) ON DELETE CASCADE,
+  blocked_date date NOT NULL,
+  note text,
+  created_at timestamptz DEFAULT now()
+);
+
+-- If the table already existed without space_id, add it
+ALTER TABLE availability
   ADD COLUMN IF NOT EXISTS space_id uuid REFERENCES spaces(id) ON DELETE CASCADE;
 
 -- 4. Create conversations table if it doesn't exist

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import BookerNav from '@/components/BookerNav'
 
 const EVENT_TYPES = [
   'Alumni dinner',
@@ -60,7 +61,9 @@ export default function CreateEventPage() {
   }
 
   return (
-    <main className="min-h-screen bg-base px-4 py-12">
+    <>
+      <BookerNav />
+      <main className="md:ml-[250px] px-6 py-10">
       <div className="max-w-xl mx-auto">
         <p className="text-xs uppercase tracking-widest font-medium text-text-muted mb-2">
           New event
@@ -190,6 +193,7 @@ export default function CreateEventPage() {
           </button>
         </form>
       </div>
-    </main>
+      </main>
+    </>
   )
 }

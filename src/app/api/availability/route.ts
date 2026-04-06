@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
 
     const supabase = createServiceClient()
     const { error } = await supabase
-      .from('availability_blocks')
+      .from('availability')
       .upsert(
         { venue_id: venueId, blocked_date: date, note: note ?? null },
         { onConflict: 'venue_id,blocked_date' }
@@ -61,7 +61,7 @@ export async function DELETE(req: NextRequest) {
 
     const supabase = createServiceClient()
     const { error } = await supabase
-      .from('availability_blocks')
+      .from('availability')
       .delete()
       .eq('venue_id', venueId)
       .eq('blocked_date', date)

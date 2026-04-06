@@ -52,9 +52,9 @@ export interface Venue {
   placeholder_image_url: string | null
 }
 
-export interface AvailabilityBlock {
+export interface Availability {
   id: string
-  space_id: string | null      // new: space-scoped calendar
+  space_id: string | null      // space-scoped calendar
   venue_id: string | null      // legacy: kept for backward compat
   blocked_date: string         // YYYY-MM-DD
   note: string | null
@@ -144,6 +144,34 @@ export interface Proposal {
   price_per_head: number
   status: ProposalStatus
   created_at: string
+}
+
+export interface ExtractedVenueData {
+  venue_name?: string | null
+  venue_description?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
+  spaces: ExtractedSpace[]
+}
+
+export interface ExtractedSpace {
+  name: string
+  capacity: number | null
+  base_price: number | null
+  min_spend: number | null
+  payment_deposit_pct: number | null
+  payment_pay_ahead: boolean
+  photos: string[]
+  description?: string | null
+}
+
+export interface ProposalSections {
+  coverPage: boolean
+  spaceDetails: boolean
+  pricingBreakdown: boolean
+  paymentTerms: boolean
+  contact: boolean
+  menu: boolean
 }
 
 // Follow-up questions by event type
