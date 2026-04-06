@@ -29,6 +29,8 @@ export interface Space {
   venue?: Venue
 }
 
+export type CalendarType = 'google' | 'ical'
+
 export interface Venue {
   id: string
   name: string
@@ -49,14 +51,28 @@ export interface Venue {
   claimed_by_role: string | null
   claimed_at: string | null
   placeholder_image_url: string | null
+  // Phase 2 — calendar sync
+  calendar_type: CalendarType | null
+  ical_url: string | null
+  last_synced_at: string | null
 }
 
+// Availability — supports both simple date blocks and iCal sync blocks.
+// Legacy rows have blocked_date/note only; iCal sync rows have starts_at/ends_at/etc.
 export interface Availability {
   id: string
   space_id: string | null      // space-scoped calendar
   venue_id: string | null      // legacy: kept for backward compat
-  blocked_date: string         // YYYY-MM-DD
+  blocked_date: string | null   // YYYY-MM-DD (legacy simple blocks; null for iCal sync rows)
   note: string | null
+  // iCal sync fields — nullable because legacy rows won't have them
+  title: string | null
+  starts_at: string | null
+  ends_at: string | null
+  all_day: boolean | null
+  source: CalendarType | null
+  uid: string | null
+  synced_at: string | null
   created_at: string
 }
 

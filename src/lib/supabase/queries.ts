@@ -1,5 +1,5 @@
 import { createServiceClient } from './client'
-import type { Space, BookerEvent, Conversation, Message } from '@/types'
+import type { Venue, Availability, CalendarType, Space, BookerEvent, Conversation, Message } from '@/types'
 
 // ─── Spaces ──────────────────────────────────────────────────────────────────
 
@@ -323,7 +323,7 @@ export async function toggleAvailabilityBlock(
     .maybeSingle()
 
   if (existing) {
-    await supabase.from('availability_blocks').delete().eq('id', existing.id)
+    await supabase.from('availability').delete().eq('id', existing.id)
     return { blocked: false }
   } else {
     await supabase
@@ -331,4 +331,183 @@ export async function toggleAvailabilityBlock(
       .insert({ space_id: spaceId, blocked_date: date })
     return { blocked: true }
   }
+}
+
+// ─── Calendar sync & freshness penalty ───────────────────────────────────────
+
+/**
+ * Fetches venues ranked with a freshness penalty.
+ * Venues that have synced their calendar recently rank higher.
+ * Venues with no calendar sync are penalised in the ordering.
+ */
+export async function getVenuesRanked(filters?: { date?: string }): Promise<Venue[]> {
+  const supabase = createServiceClient()
+
+  let query = supabase
+    .from('venues')
+    .select('*')
+
+  if (filters?.date) {
+    const { data: blocks } = await supabase
+      .from('availability')
+      .select('venue_id')
+      .eq('blocked_date', filters.date)
+
+    if (blocks && blocks.length > 0) {
+      const blockedVenueIds = blocks.map((b) => b.venue_id)
+      query = query.not('id', 'in', `(${blockedVenueIds.join(',')})`)
+    }
+  }
+
+  const { data, error } = await query
+
+  if (error) {
+    console.error('getVenuesRanked error:', error.message)
+    return []
+  }
+
+  const venues = (data ?? []) as Venue[]
+  const now = Date.now()
+  const ONE_DAY_MS = 86_400_000
+
+  // Sort: synced recently → synced long ago → never synced → by created_at
+  venues.sort((a, b) => {
+    const scoreA = freshnessPenalty(a, now, ONE_DAY_MS)
+    const scoreB = freshnessPenalty(b, now, ONE_DAY_MS)
+    if (scoreA !== scoreB) return scoreA - scoreB // lower penalty = higher rank
+    return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+  })
+
+  return venues
+}
+
+/**
+ * Returns a penalty score for a venue based on calendar freshness.
+ * 0 = synced within the last day (freshest)
+ * 1 = synced within the last 7 days
+ * 2 = synced more than 7 days ago
+ * 3 = never synced / no calendar connected
+ */
+function freshnessPenalty(venue: Venue, nowMs: number, oneDayMs: number): number {
+  if (!venue.last_synced_at) return 3
+  const age = nowMs - new Date(venue.last_synced_at).getTime()
+  if (age < oneDayMs) return 0
+  if (age < 7 * oneDayMs) return 1
+  return 2
+}
+
+// ─── iCal availability blocks ────────────────────────────────────────────────
+
+export async function getAvailabilityBlocksByVenue(
+  venueId: string,
+  from?: string,
+  to?: string
+): Promise<Availability[]> {
+  const supabase = createServiceClient()
+  let query = supabase
+    .from('availability')
+    .select('*')
+    .eq('venue_id', venueId)
+    .order('blocked_date', { ascending: true })
+
+  if (from) query = query.gte('starts_at', from)
+  if (to) query = query.lte('ends_at', to)
+
+  const { data, error } = await query
+  if (error) {
+    console.error('getAvailabilityBlocksByVenue error:', error.message)
+    return []
+  }
+  return (data ?? []) as Availability[]
+}
+
+/**
+ * Upserts availability blocks for a venue from a calendar sync.
+ * Uses the (venue_id, uid) unique index for conflict resolution.
+ */
+export async function upsertAvailabilityBlocks(
+  venueId: string,
+  blocks: {
+    title: string | null
+    starts_at: string
+    ends_at: string
+    all_day: boolean
+    source: CalendarType
+    uid: string
+  }[]
+): Promise<{ inserted: number; error: string | null }> {
+  if (blocks.length === 0) return { inserted: 0, error: null }
+
+  const supabase = createServiceClient()
+  const now = new Date().toISOString()
+
+  const rows = blocks.map((b) => ({
+    venue_id: venueId,
+    title: b.title,
+    starts_at: b.starts_at,
+    ends_at: b.ends_at,
+    all_day: b.all_day,
+    source: b.source,
+    uid: b.uid,
+    synced_at: now,
+  }))
+
+  const { data, error } = await supabase
+    .from('availability')
+    .upsert(rows, { onConflict: 'venue_id,uid', ignoreDuplicates: false })
+    .select('id')
+
+  if (error) {
+    return { inserted: 0, error: error.message }
+  }
+  return { inserted: data?.length ?? 0, error: null }
+}
+
+/**
+ * Updates a venue's calendar connection settings.
+ */
+export async function updateVenueCalendar(
+  venueId: string,
+  calendarType: CalendarType | null,
+  icalUrl: string | null
+): Promise<{ error: string | null }> {
+  const supabase = createServiceClient()
+  const { error } = await supabase
+    .from('venues')
+    .update({
+      calendar_type: calendarType,
+      ical_url: icalUrl,
+      last_synced_at: null,
+    })
+    .eq('id', venueId)
+
+  return { error: error?.message ?? null }
+}
+
+/**
+ * Marks a venue as synced right now.
+ */
+export async function markVenueSynced(venueId: string): Promise<void> {
+  const supabase = createServiceClient()
+  await supabase
+    .from('venues')
+    .update({ last_synced_at: new Date().toISOString() })
+    .eq('id', venueId)
+}
+
+/**
+ * Returns all venues that have a calendar configured (for the sync cron).
+ */
+export async function getVenuesWithCalendar(): Promise<Venue[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('venues')
+    .select('*')
+    .not('ical_url', 'is', null)
+
+  if (error) {
+    console.error('getVenuesWithCalendar error:', error.message)
+    return []
+  }
+  return (data ?? []) as Venue[]
 }
