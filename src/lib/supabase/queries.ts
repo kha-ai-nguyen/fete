@@ -1,5 +1,5 @@
 import { createServiceClient } from './client'
-import type { Space, BookerEvent, Conversation, Message } from '@/types'
+import type { Space, BookerEvent, Conversation, Message, Proposal } from '@/types'
 
 // ─── Spaces ──────────────────────────────────────────────────────────────────
 
@@ -331,4 +331,21 @@ export async function toggleAvailabilityBlock(
       .insert({ space_id: spaceId, blocked_date: date })
     return { blocked: true }
   }
+}
+
+// ─── Price Proposals (KHA-155: verified pricing) ─────────────────────────────
+
+export async function getProposalsByVenue(venueId: string): Promise<Proposal[]> {
+  const supabase = createServiceClient()
+  const { data, error } = await supabase
+    .from('proposals')
+    .select('*')
+    .eq('venue_id', venueId)
+    .order('created_at', { ascending: false })
+
+  if (error) {
+    console.error('getProposalsByVenue error:', error.message)
+    return []
+  }
+  return (data ?? []) as Proposal[]
 }
