@@ -1,9 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/client'
+import { toggleAvailabilityBlock } from '@/lib/supabase/queries'
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
+
+    // New space-scoped toggle (used by venue dashboard calendar)
+    if (body.space_id && body.date) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
+        return NextResponse.json({ error: 'date must be YYYY-MM-DD' }, { status: 400 })
+      }
+      const result = await toggleAvailabilityBlock(body.space_id, body.date)
+      return NextResponse.json(result)
+    }
+
+    // Legacy venue-scoped block
     const { venueId, date, note } = body as {
       venueId?: string
       date?: string
@@ -14,7 +26,6 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'venueId and date are required' }, { status: 400 })
     }
 
-    // Validate date format
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json({ error: 'date must be YYYY-MM-DD' }, { status: 400 })
     }
