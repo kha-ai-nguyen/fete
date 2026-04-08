@@ -74,9 +74,7 @@ function seededRandom(seed: number) {
   }
 }
 
-export type TileSize = 'featured' | 'large' | 'medium' | 'small'
-
-export interface MasonrySpace {
+export interface ResultSpace {
   id: string
   venue_id: string
   name: string
@@ -91,14 +89,14 @@ export interface MasonrySpace {
   available: boolean
   distance_km: number
   total_price: number
-  tileSize: TileSize
 }
 
-export function generateMockSpaces(headcount: number): MasonrySpace[] {
+export function generateMockSpaces(headcount: number): ResultSpace[] {
   const rand = seededRandom(42)
 
   return Array.from({ length: 50 }, (_, i) => {
-    const photoCount = Math.floor(rand() * 5) + 1
+    // Always 3-5 photos for a consistent mosaic
+    const photoCount = Math.floor(rand() * 3) + 3
     const startIdx = Math.floor(rand() * PHOTOS.length)
     const photos = Array.from({ length: photoCount }, (_, j) =>
       PHOTOS[(startIdx + j) % PHOTOS.length]
@@ -111,20 +109,8 @@ export function generateMockSpaces(headcount: number): MasonrySpace[] {
     const minSpend = [null, 1000, 1500, 2000, 2500, 3000, 4000, 5000][Math.floor(rand() * 8)]
     const neighbourhood = NEIGHBOURHOODS[Math.floor(rand() * NEIGHBOURHOODS.length)]
 
-    // Tile size assignment
-    let tileSize: TileSize
-    if (photoCount >= 4 || capacity >= 200) {
-      tileSize = 'featured'
-    } else if (photoCount >= 3 || capacity >= 100) {
-      tileSize = 'large'
-    } else if (i % 3 === 0) {
-      tileSize = 'small'
-    } else {
-      tileSize = 'medium'
-    }
-
     const totalPrice = basePrice * headcount + (minSpend ?? 0)
-    const available = rand() > 0.15 // 85% available
+    const available = rand() > 0.15
 
     return {
       id: `mock-${i}`,
@@ -145,7 +131,6 @@ export function generateMockSpaces(headcount: number): MasonrySpace[] {
       available,
       distance_km: distanceKm,
       total_price: totalPrice,
-      tileSize,
     }
   })
 }

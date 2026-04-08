@@ -1,14 +1,16 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useEffect, useRef, useCallback, useTransition } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import MasonryTile from '@/components/MasonryTile'
-import FeaturedCarousel from '@/components/FeaturedCarousel'
+import { AnimatePresence } from 'framer-motion'
+import SpaceRow from '@/components/SpaceRow'
+import ComparisonBar from '@/components/ComparisonBar'
+import ComparisonPanel from '@/components/ComparisonPanel'
 import ResultsToolbar, { type SortKey } from './ResultsToolbar'
-import type { MasonrySpace } from './mockSpaces'
+import type { ResultSpace } from './mockSpaces'
 import type { BookerEvent } from '@/types'
 
-function sortSpaces(spaces: MasonrySpace[], key: SortKey): MasonrySpace[] {
+function sortSpaces(spaces: ResultSpace[], key: SortKey): ResultSpace[] {
   return [...spaces].sort((a, b) => {
     if (key === 'distance') return a.distance_km - b.distance_km
     if (key === 'price_asc') return a.total_price - b.total_price
@@ -18,7 +20,7 @@ function sortSpaces(spaces: MasonrySpace[], key: SortKey): MasonrySpace[] {
 }
 
 interface Props {
-  spaces: MasonrySpace[]
+  spaces: ResultSpace[]
   event: BookerEvent
   dateFrom: string | null
   dateTo: string | null
@@ -32,16 +34,76 @@ export default function ResultsGrid({ spaces, event, dateFrom, dateTo }: Props) 
   const [localDateTo, setLocalDateTo] = useState(dateTo ?? event.date_to ?? '')
   const [, startTransition] = useTransition()
 
+  // Comparison state
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [showComparison, setShowComparison] = useState(false)
+
+  // Scroll-active row detection
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const observerRef = useRef<IntersectionObserver | null>(null)
+  const rowRefs = useRef<Map<string, HTMLElement>>(new Map())
+
   const sorted = sortSpaces(spaces, sort)
   const available = sorted.filter((s) => s.available)
   const unavailable = sorted.filter((s) => !s.available)
+  const allSorted = [...available, ...unavailable]
 
-  // Featured spaces for the top carousel (pick available featured/large tiles)
-  const featured = available.filter((s) => s.tileSize === 'featured').slice(0, 5)
+  // Setup IntersectionObserver for scroll-active detection (desktop only)
+  useEffect(() => {
+    const isTouch = window.matchMedia('(hover: none)').matches
+    if (isTouch) return
 
-  // Masonry grid spaces: all available (minus featured shown in carousel) + unavailable at end
-  const masonryAvailable = available.filter((s) => !featured.includes(s))
-  const masonrySpaces = [...masonryAvailable, ...unavailable]
+    const callback: IntersectionObserverCallback = (entries) => {
+      let bestEntry: IntersectionObserverEntry | null = null
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          if (!bestEntry || entry.intersectionRatio > bestEntry.intersectionRatio) {
+            bestEntry = entry
+          }
+        }
+      }
+      if (bestEntry) {
+        const id = bestEntry.target.getAttribute('data-space-id')
+        if (id) setActiveId(id)
+      }
+    }
+
+    observerRef.current = new IntersectionObserver(callback, {
+      rootMargin: '-30% 0px -30% 0px',
+      threshold: [0, 0.25, 0.5, 0.75, 1.0],
+    })
+
+    // Observe all currently registered rows
+    rowRefs.current.forEach((el) => {
+      observerRef.current?.observe(el)
+    })
+
+    return () => observerRef.current?.disconnect()
+  }, [allSorted.length])
+
+  // Ref callback for each row
+  const registerRow = useCallback((el: HTMLDivElement | null, spaceId: string) => {
+    if (el) {
+      rowRefs.current.set(spaceId, el)
+      observerRef.current?.observe(el)
+    } else {
+      const prev = rowRefs.current.get(spaceId)
+      if (prev) observerRef.current?.unobserve(prev)
+      rowRefs.current.delete(spaceId)
+    }
+  }, [])
+
+  function handleToggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else if (next.size < 3) {
+        next.add(id)
+      }
+      return next
+    })
+  }
 
   function applyDates() {
     const params = new URLSearchParams()
@@ -66,11 +128,6 @@ export default function ResultsGrid({ spaces, event, dateFrom, dateTo }: Props) 
         unavailableCount={unavailable.length}
       />
 
-      {/* Featured carousel */}
-      {featured.length > 0 && (
-        <FeaturedCarousel spaces={featured} eventId={event.id} />
-      )}
-
       {/* No results */}
       {spaces.length === 0 && (
         <div className="text-center py-24 border-2 border-dark border-dashed rounded-2xl">
@@ -89,36 +146,43 @@ export default function ResultsGrid({ spaces, event, dateFrom, dateTo }: Props) 
         </div>
       )}
 
-      {/* Masonry grid */}
-      {masonrySpaces.length > 0 && (
-        <div
-          className="gap-4"
-          style={{
-            columns: 1,
-            columnGap: '1rem',
-          }}
-        >
-          {/* Responsive columns via CSS */}
-          <style>{`
-            @media (min-width: 640px) {
-              .masonry-grid { columns: 2 !important; }
-            }
-            @media (min-width: 1024px) {
-              .masonry-grid { columns: 3 !important; }
-            }
-          `}</style>
-          <div className="masonry-grid" style={{ columns: 1, columnGap: '1rem' }}>
-            {masonrySpaces.map((space, i) => (
-              <MasonryTile
-                key={space.id}
-                space={space}
-                eventId={event.id}
-                index={i}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+      {/* Space rows */}
+      <div className="space-y-6">
+        {allSorted.map((space, i) => (
+          <SpaceRow
+            key={space.id}
+            ref={(el) => registerRow(el, space.id)}
+            space={space}
+            eventId={event.id}
+            isActive={activeId === space.id}
+            isSelected={selectedIds.has(space.id)}
+            onToggleSelect={handleToggleSelect}
+            index={i}
+          />
+        ))}
+      </div>
+
+      {/* Comparison bar */}
+      <AnimatePresence>
+        {selectedIds.size > 0 && (
+          <ComparisonBar
+            count={selectedIds.size}
+            onCompare={() => setShowComparison(true)}
+            onClear={() => setSelectedIds(new Set())}
+          />
+        )}
+      </AnimatePresence>
+
+      {/* Comparison panel */}
+      <AnimatePresence>
+        {showComparison && (
+          <ComparisonPanel
+            spaces={allSorted.filter((s) => selectedIds.has(s.id))}
+            onClose={() => setShowComparison(false)}
+            eventId={event.id}
+          />
+        )}
+      </AnimatePresence>
     </div>
   )
 }

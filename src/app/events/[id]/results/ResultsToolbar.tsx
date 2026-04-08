@@ -76,8 +76,13 @@ export default function ResultsToolbar({
           </span>
         )}
         {/* Results count badge */}
-        <span className="ml-auto bg-primary/20 text-primary text-xs font-bold px-2.5 py-1 rounded-full">
-          {totalCount} spaces
+        <span className="ml-auto flex items-center gap-3">
+          <span className="text-white/40 text-[10px] uppercase tracking-widest hidden sm:inline">
+            Tick spaces to compare
+          </span>
+          <span className="bg-primary/20 text-primary text-xs font-bold px-2.5 py-1 rounded-full">
+            {totalCount} spaces
+          </span>
         </span>
       </div>
 
