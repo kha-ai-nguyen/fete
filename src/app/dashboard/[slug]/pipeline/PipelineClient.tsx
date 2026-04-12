@@ -260,7 +260,7 @@ interface Props {
 export default function PipelineClient({ venueName, slug, cards: initialCards, spaceNames }: Props) {
   const [cards, setCards] = useState<PipelineCard[]>(initialCards)
   const [spaceFilter, setSpaceFilter] = useState('All spaces')
-  const [timeView, setTimeView] = useState<TimeView>('30')
+  const [timeView, setTimeView] = useState<TimeView>('90')
 
   function handleStatusChange(conversationId: string, newStatus: Stage) {
     setCards((prev) =>
